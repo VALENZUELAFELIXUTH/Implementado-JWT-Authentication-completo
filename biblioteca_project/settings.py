@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'django_filters',
+    'djoser',
     
     # Tu aplicación
     'libros',
@@ -118,24 +119,22 @@ AUTH_PASSWORD_VALIDATORS = [
 
 
 REST_FRAMEWORK = {
-    # AUTENTICACIÓN: Qué métodos acepta tu API
+    # AUTENTICACIÓN: Solo dejamos lo que realmente estamos usando
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',  # JWT (Token moderno)
-        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',  # ← AGREGAR para OAuth 2.0
-        'rest_framework.authentication.TokenAuthentication',          # Token tradicional
-        'rest_framework.authentication.SessionAuthentication',        # Sesión (para admin)
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication', 
     ],
     
-    # PERMISOS: Qué pueden hacer los usuarios
+    # PERMISOS: Los usuarios anónimos solo pueden ver (GET), los logueados pueden todo
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
     
-    # PAGINACIÓN: Cuántos resultados por página
+    # PAGINACIÓN
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
     
-    # FILTROS: Permitir búsquedas y ordenamiento
+    # FILTROS
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
         'rest_framework.filters.SearchFilter',
