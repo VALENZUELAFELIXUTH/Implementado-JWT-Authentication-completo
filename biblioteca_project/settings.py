@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+from django.db.backends.mysql.schema import DatabaseSchemaEditor
+DatabaseSchemaEditor.sql_create_table += " ROW_FORMAT=DYNAMIC"
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -43,8 +45,14 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_filters',
     'djoser',
-    
+    'django.contrib.sites',
+    'oauth2_provider',  # ← AGREGAR (Django OAuth Toolkit)
+    'allauth',  # ← AGREGAR
+    'allauth.account',  # ← AGREGAR
+    'allauth.socialaccount',  # ← AGREGAR
+    'allauth.socialaccount.providers.google',
     # Tu aplicación
+    'django_extensions',
     'libros',
 ]
 
@@ -57,6 +65,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 ROOT_URLCONF = "biblioteca_project.urls"
@@ -64,7 +73,7 @@ ROOT_URLCONF = "biblioteca_project.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / 'templates'],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -93,7 +102,7 @@ DATABASES = {
         'PORT': '3306',
         'OPTIONS': {
             'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES', default_storage_engine=INNODB",
         },
     }
 }
@@ -196,3 +205,77 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+SITE_ID = 1
+
+# =======================
+# AUTHENTICATION BACKENDS
+# =======================
+AUTHENTICATION_BACKENDS = [
+    # Backend por defecto de Django (username/password)
+    'django.contrib.auth.backends.ModelBackend',
+    
+    # Backend de allauth para OAuth social
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+# =======================
+# DJANGO ALLAUTH CONFIG
+# =======================
+
+# Configuración de cuentas
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_USERNAME_REQUIRED = False  # Solo email para login social
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_EMAIL_VERIFICATION = 'optional'  # Para desarrollo: 'mandatory' en producción
+
+# Configuración de login social
+SOCIALACCOUNT_AUTO_SIGNUP = True  # Crear usuario automáticamente
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'  # No verificar email en OAuth
+
+# Proveedores OAuth configurados
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        },
+        'APP': {
+            'client_id': '781505715155-eaoqojl3k48lrp98m0rhgpg3tqgkc1he.apps.googleusercontent.com',  # ← REEMPLAZAR
+            'secret': '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',  # ← REEMPLAZAR
+            'key': ''
+        }
+    }
+}
+
+## =======================
+# OAUTH 2.0 PROVIDER SETTINGS
+# =======================
+# Configuración para django-oauth-toolkit
+OAUTH2_PROVIDER = {
+    # Tiempo de vida de los tokens
+    'ACCESS_TOKEN_EXPIRE_SECONDS': 3600,  # 1 hora
+    'REFRESH_TOKEN_EXPIRE_SECONDS': 86400 * 7,  # 7 días
+    
+    # Scopes disponibles
+    'SCOPES': {
+        'read': 'Acceso de lectura',
+        'write': 'Acceso de escritura',
+    },
+    
+    # Tipo de token por defecto (CORREGIDO AQUÍ ABAJO)
+    'ACCESS_TOKEN_MODEL': 'oauth2_provider.AccessToken',  # ← Quité ".models"
+    'REFRESH_TOKEN_MODEL': 'oauth2_provider.RefreshToken', # ← Quité ".models"
+}
+
+SILENCED_SYSTEM_CHECKS = ["models.W036", "models.W043"] # Silencia las advertencias que ya viste
+
+ACCOUNT_EMAIL_MAX_LENGTH = 190
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
+ACCOUNT_LOGOUT_REDIRECT_URL = '/'
+SOCIALACCOUNT_LOGIN_ON_GET = True
+LOGIN_REDIRECT_URL = '/oauth/login/'

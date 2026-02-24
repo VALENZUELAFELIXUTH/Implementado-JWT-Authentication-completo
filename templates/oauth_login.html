@@ -117,86 +117,64 @@
     </div>
     
     <script>
-        // Obtener código de autorización de la URL
+    window.onload = async () => {
+        // 1. Intentamos obtener los tokens primero
+        try {
+            const response = await fetch('/api/get-tokens/');
+            
+            if (response.ok) {
+                const data = await response.json();
+                console.log("¡Tokens recibidos!", data);
+                
+                // Si llegamos aquí, DETENEMOS el bucle y mostramos los datos
+                showSuccess(data);
+                return; // <--- MUY IMPORTANTE: evita que siga ejecutando lo de abajo
+            }
+        } catch (err) {
+            console.error("Error al pedir tokens:", err);
+        }
+
+        // 2. Solo si lo anterior falló (no hay sesión), revisamos la URL
         const urlParams = new URLSearchParams(window.location.search);
         const code = urlParams.get('code');
-        const error = urlParams.get('error');
-        
-        if (error) {
-            showError('Login cancelado o error: ' + error);
-        } else if (!code) {
-            // Si no hay código, redirigir a Google
-            window.location.href = '/api/auth/google/redirect/';
-        } else {
-            // Si hay código, intercambiarlo por tokens
+
+        if (code) {
+            // Si hay un código manual (raro con Allauth, pero posible)
             exchangeCodeForTokens(code);
+        } else {
+            // 3. SI NO HAY SESIÓN Y NO HAY CÓDIGO: Entonces sí, a Google.
+            console.log("Sin sesión activa, redirigiendo a Google...");
+            window.location.href = '/accounts/google/login/';
         }
-        
-        async function exchangeCodeForTokens(code) {
-            try {
-                const response = await fetch('/api/auth/google/callback/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ code: code })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    // Guardar tokens en localStorage
-                    localStorage.setItem('access_token', data.access);
-                    localStorage.setItem('refresh_token', data.refresh);
-                    
-                    showSuccess(data);
-                } else {
-                    showError(data.error || 'Error desconocido');
-                }
-            } catch (error) {
-                showError('Error de red: ' + error.message);
-            }
-        }
-        
-        function showSuccess(data) {
-            document.getElementById('loading').style.display = 'none';
-            const resultDiv = document.getElementById('result');
-            resultDiv.className = 'result success';
-            resultDiv.style.display = 'block';
-            
-            resultDiv.innerHTML = `
-                <h2>✅ ${data.message}</h2>
-                
-                <div class="user-info">
-                    <h3>👤 Datos del Usuario</h3>
-                    <p><strong>Email:</strong> ${data.user.email}</p>
-                    <p><strong>Nombre:</strong> ${data.user.first_name} ${data.user.last_name}</p>
-                    <p><strong>Username:</strong> ${data.user.username}</p>
-                    ${data.google_data.picture ? `<img src="${data.google_data.picture}" alt="Foto de perfil" style="border-radius:50%;margin-top:10px">` : ''}
-                </div>
-                
-                <div class="token-display">
-                    <strong>🔑 Access Token (JWT):</strong><br>
-                    ${data.access.substring(0, 50)}...
-                </div>
-                
-                <a href="/api/" class="btn">📚 Ir a la API</a>
-                <a href="/" class="btn">🏠 Volver al Inicio</a>
-            `;
-        }
-        
-        function showError(errorMessage) {
-            document.getElementById('loading').style.display = 'none';
-            const resultDiv = document.getElementById('result');
-            resultDiv.className = 'result error';
-            resultDiv.style.display = 'block';
-            
-            resultDiv.innerHTML = `
-                <h2>❌ Error en el Login</h2>
-                <p>${errorMessage}</p>
-                <a href="/" class="btn">🏠 Volver al Inicio</a>
-            `;
-        }
-    </script>
+    };
+
+    function showSuccess(data) {
+    document.getElementById('loading').style.display = 'none';
+    const resultDiv = document.getElementById('result');
+    resultDiv.className = 'result success';
+    resultDiv.style.display = 'block';
+    
+    // Verificamos si hay imagen para mostrarla
+    const profileImg = data.user.picture 
+        ? `<img src="${data.user.picture}" alt="Foto de perfil" style="border-radius:50%; width:80px; margin-bottom:15px; border: 3px solid #667eea;">` 
+        : '';
+
+    resultDiv.innerHTML = `
+        <h2>✅ Login Exitoso</h2>
+        <div class="user-info" style="text-align:center;">
+            ${profileImg} 
+            <p><strong>Usuario:</strong> ${data.user.username}</p>
+            <p><strong>Email:</strong> ${data.user.email}</p>
+        </div>
+        <div class="token-display">
+            <strong>Access Token:</strong><br>
+            <small>${data.access.substring(0, 50)}...</small>
+        </div>
+        <div style="text-align:center;">
+            <a href="/" class="btn">Volver al Inicio</a>
+        </div>
+    `;
+    }
+</script>
 </body>
 </html>
