@@ -53,10 +53,10 @@ urlpatterns = [
     # DELETE /api/libros/{id}/     - Eliminar libro
     # Y lo mismo para autores, categorias, prestamos
     path('', include(router.urls)),
+    path('auth/google/redirect/', oauth_views.google_oauth_redirect, name='google_redirect'),
+    path('auth/google/callback/', oauth_views.google_oauth_callback, name='google_callback'),
 ]
 
 # ─────────────────────────────────
     # 🔑 AUTENTICACIÓN OAUTH 2.0 (GOOGLE)
     # ─────────────────────────────────
-path('auth/google/redirect/', oauth_views.google_oauth_redirect, name='google_redirect'),
-path('auth/google/callback/', oauth_views.google_oauth_callback, name='google_callback'),
